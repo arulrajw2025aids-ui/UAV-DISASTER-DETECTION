@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UAV Disaster Detection System</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700;800&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @keyframes rainbowBg {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    @keyframes rainbowText {
+      0% {
+        color: #cc0000;
+      }
+
+      25% {
+        color: #ccaa00;
+      }
+
+      50% {
+        color: #007700;
+      }
+
+      75% {
+        color: #0044cc;
+      }
+
+      100% {
+        color: #cc0000;
+      }
+    }
+
+    body {
+      background: linear-gradient(270deg,
+          #ffd6d6, #ffddd6, #ffe4d6, #ffebd6, #fff2d6, #fff9d6,
+          #ffffd6, #f2ffd6, #e5ffd6, #d6ffd6, #d6ffe5, #d6fff2,
+          #d6ffff, #d6f2ff, #d6e5ff, #d6d8ff, #ddd6ff, #e4d6ff,
+          #ebd6ff, #f2d6ff, #f9d6ff, #ffd6ff, #ffd6f2, #ffd6e5,
+          #ffd6d6);
+      background-size: 400% 400%;
+      animation: rainbowBg 20s ease infinite;
+      color: #1a1a2e;
+      font-family: 'Roboto', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 28px;
+      background: #ffffff;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      font-size: 2rem;
+    }
+
+    .logo-text {
+      font-size: 1.1rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #1a1a2e;
+    }
+
+    .logo-text span {
+      color: #1565c0;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 2px solid #1a1a2e;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #1a1a2e;
+      font-weight: 700;
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #1a1a2e;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1)
+      }
+
+      50% {
+        opacity: .4;
+        transform: scale(1.4)
+      }
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+    }
+
+    .user-pill a {
+      color: #cc0000;
+      text-decoration: none;
+      font-size: 0.75rem;
+      margin-left: 6px;
+      border-left: 1px solid #aaa;
+      padding-left: 10px;
+      font-weight: 700;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: linear-gradient(90deg, #fff0f0, #fff5e6, #fffde6, #f0fff0, #e6ffff, #e6eeff, #f5e6ff, #ffe6f5, #fff0f0);
+      border-bottom: 3px solid transparent;
+      border-image: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc) 1;
+      padding: 0 28px;
+    }
+
+    .tab-btn {
+      padding: 14px 28px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      background: none;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -3px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .tab-btn.active {
+      color: #4a0080;
+      border-bottom-color: #4a0080;
+    }
+
+    .tab-btn:nth-child(1).active {
+      color: #990000;
+      border-bottom-color: #990000;
+    }
+
+    .tab-btn:nth-child(2).active {
+      color: #884400;
+      border-bottom-color: #884400;
+    }
+
+    .tab-btn:nth-child(3).active {
+      color: #006622;
+      border-bottom-color: #006622;
+    }
+
+    .tab-btn:nth-child(4).active {
+      color: #004499;
+      border-bottom-color: #004499;
+    }
+
+    .tab-btn:nth-child(6).active {
+      color: #006644;
+      border-bottom-color: #006644;
+    }
+
+    .tab-btn:nth-child(7).active {
+      color: #7700aa;
+      border-bottom-color: #7700aa;
+    }
+
+    /* ── RESOURCE TRACKER ── */
+    .resource-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+    }
+
+    .resource-item {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-left: 4px solid #1e90ff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .resource-item.critical {
+      border-left-color: #ff3b3b;
+      background: #fff5f5;
+    }
+
+    .resource-item.low {
+      border-left-color: #ff9500;
+      background: #fffbf0;
+    }
+
+    .resource-item.ok {
+      border-left-color: #00aa55;
+      background: #f0fff6;
+    }
+
+    .res-name {
+      font-weight: 700;
+      color: #1a1a2e;
+      font-size: 0.88rem;
+    }
+
+    .res-qty {
+      font-size: 0.75rem;
+      color: #555;
+      margin-top: 2px;
+    }
+
+    .res-bar-wrap {
+      width: 100px;
+      background: #eee;
+      border-radius: 6px;
+      height: 8px;
+      margin-top: 6px;
+    }
+
+    .res-bar {
+      height: 8px;
+      border-radius: 6px;
+      transition: width 0.4s;
+    }
+
+    /* ── INCIDENT LOG ── */
+    .incident-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+    }
+
+    .incident-row {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-left: 4px solid #888;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .incident-row.P1 {
+      border-left-color: #ff3b3b;
+    }
+
+    .incident-row.P2 {
+      border-left-color: #ff9500;
+    }
+
+    .incident-row.P3 {
+      border-left-color: #1e90ff;
+    }
+
+    .inc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .inc-title {
+      font-weight: 700;
+      color: #1a1a2e;
+      font-size: 0.88rem;
+    }
+
+    .inc-type {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+
+    .inc-flood {
+      background: #cce0ff;
+      color: #0044cc;
+    }
+
+    .inc-fire {
+      background: #ffcccc;
+      color: #cc0000;
+    }
+
+    .inc-quake {
+      background: #ffe8cc;
+      color: #884400;
+    }
+
+    .inc-medical {
+      background: #ccffdd;
+      color: #006622;
+    }
+
+    .inc-other {
+      background: #eee;
+      color: #555;
+    }
+
+    .inc-status {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .status-active {
+      background: #ffcccc;
+      color: #cc0000;
+    }
+
+    .status-progress {
+      background: #ffe8cc;
+      color: #884400;
+    }
+
+    .status-resolved {
+      background: #ccffdd;
+      color: #006622;
+    }
+
+    .inc-meta {
+      font-size: 0.72rem;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .tab-btn:hover:not(.active) {
+      color: #4a0080;
+    }
+
+    .slide {
+      display: none;
+      padding: 24px 28px;
+      flex: 1;
+      background: transparent;
+    }
+
+    .slide.active {
+      display: block;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: rgba(255, 255, 255, 0.88);
+      border: 2px solid transparent;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      background-clip: padding-box;
+      outline: 2px solid transparent;
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #cc0000, #ccaa00, #007700, #0044cc);
+      z-index: -1;
+    }
+
+    .card-header {
+      padding: 12px 18px;
+      border-bottom: 2px solid transparent;
+      border-image: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc) 1;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .video-wrap {
+      position: relative;
+      background: #000;
+      max-width: 480px;
+    }
+
+    .video-wrap img {
+      width: 100%;
+      display: block;
+      height: 300px;
+      object-fit: cover;
+    }
+
+    .video-overlay {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: #00000099;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      color: #1565c0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      border: 2px solid transparent;
+      position: relative;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #cc0000, #ccaa00, #007700, #0044cc);
+      z-index: -1;
+    }
+
+    .stat-val {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1;
+      animation: rainbowText 8s linear infinite;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: #222;
+      margin-top: 6px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    #slide-detection {
+      background: linear-gradient(135deg, #ffd6d6, #ffebd6, #ffffd6, #d6ffd6);
+    }
+
+    #slide-alerts {
+      background: linear-gradient(135deg, #d6ffff, #d6e5ff, #ddd6ff, #f2d6ff);
+    }
+
+    #slide-messages {
+      background: linear-gradient(135deg, #ffd6f2, #ffd6d6, #ffebd6, #ffffd6);
+    }
+
+    #slide-analytics {
+      background: linear-gradient(135deg, #d6ffd6, #d6fff2, #d6ffff, #d6f2ff);
+    }
+
+    #slide-resources {
+      background: linear-gradient(135deg, #ebd6ff, #f9d6ff, #ffd6ff, #ffd6f2);
+    }
+
+    #slide-incidents {
+      background: linear-gradient(135deg, #ffffd6, #d6ffd6, #d6ffff, #d6d8ff);
+    }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .badge-NONE {
+      background: #00ff8820;
+      color: #00aa55;
+      border: 1px solid #00ff8840;
+    }
+
+    .badge-MEDIUM {
+      background: #ff950020;
+      color: #cc7700;
+      border: 1px solid #ff950040;
+    }
+
+    .badge-HIGH {
+      background: #ff3b3b20;
+      color: #cc2222;
+      border: 1px solid #ff3b3b40;
+    }
+
+    /* ── SLIDE 2: ALERTS ── */
+    .alerts-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .alerts-header-row h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .alert-count-badge {
+      background: #dbeafe;
+      border: 1px solid #90caf9;
+      color: #0d3b7a;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+    }
+
+    .alerts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+
+    .alert-card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 16px;
+      border-top: 4px solid #ff8800;
+      transition: box-shadow 0.2s;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .alert-card:hover {
+      box-shadow: 0 6px 24px rgba(136, 0, 255, 0.2);
+    }
+
+    .alert-card.HIGH {
+      border-top-color: #ff3b3b;
+    }
+
+    .alert-card.MEDIUM {
+      border-top-color: #ff9500;
+    }
+
+    .alert-card.NONE {
+      border-top-color: #00cc66;
+    }
+
+    .alert-card .ac-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .alert-card .ac-humans {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #1a1a2e;
+      line-height: 1;
+    }
+
+    .alert-card .ac-label {
+      font-size: 0.7rem;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    .alert-card .ac-time {
+      font-size: 0.75rem;
+      color: #333;
+      margin-top: 8px;
+    }
+
+    .alert-card .ac-coords {
+      font-size: 0.75rem;
+      color: #333;
+      margin-top: 4px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #333;
+      padding: 60px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .msg-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+    }
+
+    .form-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      background: #e8f4fd;
+      color: #1a1a2e;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: #1565c0;
+    }
+
+    .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      background: #e8f4fd;
+      color: #1a1a2e;
+      font-size: 0.88rem;
+      outline: none;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: opacity 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      opacity: 0.85;
+    }
+
+    .btn-primary {
+      background: #1565c0;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #1e88e5;
+    }
+
+    .btn-danger {
+      background: #ff3b3b;
+      color: #fff;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+    }
+
+    .btn-send {
+      background: #1565c0;
+      color: #fff;
+      width: 100%;
+      padding: 12px;
+      font-size: 0.9rem;
+    }
+
+    .contact-list {
+      margin-top: 12px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #fff0f0, #fff8e1, #f0fff4, #e8f4fd);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      border-left: 4px solid;
+      border-image: linear-gradient(180deg, #ff0000, #0088ff) 1;
+    }
+
+    .contact-row .c-name {
+      font-weight: 700;
+      color: #1a1a2e;
+      font-size: 0.85rem;
+    }
+
+    .contact-row .c-phone {
+      font-size: 0.75rem;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .role-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+
+    .role-rescue {
+      background: #1e90ff20;
+      color: #1565c0;
+      border: 1px solid #1e90ff40;
+    }
+
+    .role-victim {
+      background: #ff3b3b20;
+      color: #cc2222;
+      border: 1px solid #ff3b3b40;
+    }
+
+    .role-volunteer {
+      background: #00ff8820;
+      color: #00aa55;
+      border: 1px solid #00ff8840;
+    }
+
+    .msg-log {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .msg-row {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border-left: 4px solid #ff8800;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .msg-row .mr-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .msg-row .mr-to {
+      font-weight: 700;
+      color: #1a1a2e;
+      font-size: 0.85rem;
+    }
+
+    .msg-row .mr-time {
+      font-size: 0.7rem;
+      color: #333;
+    }
+
+    .msg-row .mr-text {
+      font-size: 0.82rem;
+      color: #1a1a2e;
+      margin-top: 4px;
+    }
+
+    .card-header .btn {
+      -webkit-text-fill-color: #fff;
+      background: #ff3b3b;
+      background-clip: unset;
+      -webkit-background-clip: unset;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1565c0;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 999;
+    }
+
+    /* ── SLIDE 2: GPS MAP (UPDATED FULL WIDTH) ── */
+.gps-layout {
+  display: flex;
+  flex-direction: column;   /* Stack boxes + map */
+  gap: 20px;
+  padding: 20px;
+}
+
+.map-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 big boxes per row */
+  gap: 16px;
+  width: 100%;
+}
+
+.map-info-item {
+  background: linear-gradient(135deg, #fff0f0, #e8f4fd);
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 5px solid #ff8800;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.map-info-item:hover {
+  transform: translateY(-4px);
+}
+
+.map-info-item .label {
+  font-size: 0.75rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.map-info-item .val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-top: 8px;
+}
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    footer {
+      text-align: center;
+      padding: 14px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-top: 3px solid transparent;
+      border-image: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc) 1;
+      margin-top: auto;
+      background: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar">
+    <a href="#home" class="logo">
+      <span class="logo-icon">&#128641;</span>
+      <div class="logo-text">UAV DISASTER<br><span>DETECTION</span></div>
+    </a>
+
+    <div style="display:flex;align-items:center;gap:14px">
+      <button onclick="window.location.href='/'"
+        style="background:linear-gradient(135deg,#1e90ff,#1565c0);color:#fff;border:none;border-radius:20px;padding:7px 18px;font-size:0.8rem;font-weight:700;cursor:pointer;letter-spacing:1px">&#9974;
+        Go to Home</button>
+      <div class="status-pill">
+        <div class="pulse"></div> SYSTEM LIVE
+      </div>
+      <div class="user-pill">
+        <span style="color:#1a6bb5">&#128100;</span>
+        <span style="color:#1565c0;font-weight:600">{{ username }}</span>
+        <a href="/logout">Logout &#9211;</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showSlide('messages', this)">&#128172; Messages</button>
+    <button class="tab-btn" onclick="showSlide('detection', this)">&#128247; Human Detection</button>
+    <button class="tab-btn" onclick="showSlide('gps', this)">&#128752; GPS Location</button>
+    <button class="tab-btn" onclick="showSlide('alerts', this)">&#128680; Alerts <span id="tab-alert-count"
+        style="background:#dbeafe;color:#1565c0;padding:1px 8px;border-radius:10px;font-size:0.7rem;margin-left:6px">0</span></button>
+    <button class="tab-btn" onclick="showSlide('analytics', this)">&#128200; Analytics</button>
+    <button class="tab-btn" onclick="showSlide('resources', this)">&#128230; Resources</button>
+    <button class="tab-btn" onclick="showSlide('incidents', this)">&#128221; Incidents</button>
+  </div>
+
+  <!-- SLIDE 1: HUMAN DETECTION -->
+  <div class="slide" id="slide-detection">
+    <div class="card" style="max-width:520px">
+      <div class="card-header">&#128225; Live UAV Feed</div>
+      <div class="video-wrap">
+        <img id="feed" src="" alt="Live Feed" />
+        <div class="video-overlay" id="feed-time">--:--:--</div>
+      </div>
+    </div>
+    <div class="stats" style="max-width:520px">
+      <div class="stat-card">
+        <div class="stat-val" id="s-humans" style="color:#1565c0">0</div>
+        <div class="stat-label">Humans Detected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="s-severity" style="font-size:1.1rem;padding-top:8px">
+          <span class="badge badge-NONE">NONE</span>
+        </div>
+        <div class="stat-label">Severity Level</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="s-total" style="color:#e65100">0</div>
+        <div class="stat-label">Total Detections</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: GPS MAP -->
+<div class="slide" id="slide-gps">
+  <div class="card">
+    <div class="card-header">
+       Disaster Location 
+      <span style="margin-left:auto;font-size:0.75rem;color:#90a4ae">
+      </span>
+    </div>
+
+    <div class="gps-layout">
+
+      <!-- INFO BOXES -->
+      <div class="map-info-grid">
+        <div class="map-info-item">
+          <div class="label">Latitude</div>
+          <div class="val" id="g-lat">—</div>
+        </div>
+
+        <div class="map-info-item">
+          <div class="label">Longitude</div>
+          <div class="val" id="g-lon">—</div>
+        </div>
+
+        <div class="map-info-item">
+          <div class="label">Altitude (m)</div>
+          <div class="val" id="g-alt">—</div>
+        </div>
+
+        <div class="map-info-item">
+          <div class="label">Temperature (°C)</div>
+          <div class="val" id="g-temp">—</div>
+        </div>
+
+        <div class="map-info-item">
+          <div class="label">Wind Speed (km/h)</div>
+          <div class="val" id="g-wind">—</div>
+        </div>
+
+        <div class="map-info-item">
+          <div class="label">Last Alert</div>
+          <div class="val" id="g-time" style="font-size:1rem">—</div>
+        </div>
+      </div>
+
+      <!-- FULL WIDTH MAP -->
+
+    </div>
+  </div>
+</div>
+
+  <!-- SLIDE 2: ALERTS -->
+  <div class="slide" id="slide-alerts">
+    <div class="alerts-header-row">
+      <h2>&#128680; Alert Log</h2>
+      <span class="alert-count-badge" id="alert-count-badge">0 Alerts</span>
+    </div>
+    <div class="alerts-grid" id="alert-grid">
+      <div class="empty-state">No alerts yet. Monitoring...</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: MESSAGES -->
+  <div class="slide active" id="slide-messages">
+    <div class="msg-layout">
+
+      <!-- LEFT: Contact Manager + Compose -->
+      <div>
+        <!-- Add Contact -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">&#128101; Add Contact</div>
+          <div style="padding:14px">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input class="form-input" id="c-name" placeholder="Full name" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input class="form-input" id="c-phone" placeholder="9876543210" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Role</label>
+              <select class="form-select" id="c-role">
+                <option>Rescue Team</option>
+                <option>Volunteer</option>
+                <option>Victim</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Address</label>
+              <input class="form-input" id="c-address" placeholder="Location / area" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notes</label>
+              <input class="form-input" id="c-notes" placeholder="Any additional info" />
+            </div>
+            <button class="btn btn-primary" onclick="addContact()">&#43; Add Contact</button>
+          </div>
+        </div>
+
+        <!-- DB Stats -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+          <div
+            style="background:#1e90ff15;border:1px solid #1e90ff40;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:1.4rem;font-weight:800;color:#1565c0" id="db-rescue">0</div>
+            <div style="font-size:0.68rem;color:#1a6bb5;text-transform:uppercase;letter-spacing:1px">Rescue Team</div>
+          </div>
+          <div
+            style="background:#00ff8815;border:1px solid #00ff8840;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:1.4rem;font-weight:800;color:#00aa55" id="db-volunteers">0</div>
+            <div style="font-size:0.68rem;color:#1a6bb5;text-transform:uppercase;letter-spacing:1px">Volunteers</div>
+          </div>
+          <div
+            style="background:#ff3b3b15;border:1px solid #ff3b3b40;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:1.4rem;font-weight:800;color:#cc2222" id="db-victims">0</div>
+            <div style="font-size:0.68rem;color:#1a6bb5;text-transform:uppercase;letter-spacing:1px">Victims</div>
+          </div>
+        </div>
+
+        <!-- Contact List -->
+        <div class="card">
+          <div class="card-header">&#128222; Contacts <span id="contact-count"
+              style="margin-left:auto;background:#dbeafe;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:0.7rem">0</span>
+          </div>
+          <div style="padding:10px">
+            <div class="contact-list" id="contact-list">
+              <div class="empty-state" style="padding:20px">No contacts added yet.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Compose + Message Log -->
+      <div>
+        <!-- Compose -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">&#9993; Send Disaster Message</div>
+          <div style="padding:14px">
+            <div class="form-group">
+              <label class="form-label">Send To</label>
+              <select class="form-select" id="msg-target">
+                <option value="all">All (Victims + Volunteers + Rescue Team)</option>
+                <option value="Rescue Team">Rescue Team Only</option>
+                <option value="Volunteer">Volunteers Only</option>
+                <option value="Victim">Victims Only</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Message</label>
+              <textarea class="form-input" id="msg-text" rows="8"
+                placeholder="Type your disaster alert message here... (no character limit)"
+                style="resize:vertical;min-height:120px"></textarea>
+              <div style="font-size:0.7rem;color:#555;margin-top:4px">&#128172; <span id="msg-char-count">0</span>
+                characters &nbsp;|&nbsp; Long messages are automatically split and sent as multiple SMS.</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+              <button class="btn btn-primary" style="font-size:0.75rem;padding:7px 12px"
+                onclick="fillTemplate('rescue')">&#128663; Rescue En Route</button>
+              <button class="btn btn-primary" style="font-size:0.75rem;padding:7px 12px"
+                onclick="fillTemplate('evacuate')">&#128682; Evacuate Now</button>
+              <button class="btn btn-primary" style="font-size:0.75rem;padding:7px 12px"
+                onclick="fillTemplate('safe')">&#9989; Stay Safe</button>
+              <button class="btn btn-primary" style="font-size:0.75rem;padding:7px 12px;background:#1565c0"
+                onclick="fillTemplate('rescueteam')">&#128736; Deploy Rescue Team</button>
+            </div>
+            <button class="btn btn-send" onclick="sendMessage()">&#128172; Send Message</button>
+          </div>
+        </div>
+
+        <!-- Message Log -->
+        <div class="card">
+          <div class="card-header">&#128203; Message Log <span id="msg-count"
+              style="margin-left:auto;background:#dbeafe;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:0.7rem">0</span>
+            <button class="btn btn-danger" style="margin-left:10px;padding:4px 10px;font-size:0.72rem"
+              onclick="clearMessages()">&#128465; Clear Log</button>
+          </div>
+          <div style="padding:10px">
+            <div class="msg-log" id="msg-log">
+              <div class="empty-state" style="padding:20px">No messages sent yet.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SLIDE 5: ANALYTICS -->
+  <div class="slide" id="slide-analytics">
+    <div class="charts-grid">
+      <div class="card">
+        <div class="card-header">&#127849; Contact Roles Distribution</div>
+        <div style="padding:20px;display:flex;align-items:center;justify-content:center;height:320px">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">&#128202; Detection Severity Overview</div>
+        <div style="padding:20px;height:320px">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">&#128200; Humans Detected Over Time</div>
+        <div style="padding:20px;height:320px">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">&#128203; Messages Sent by Role</div>
+        <div style="padding:20px;display:flex;align-items:center;justify-content:center;height:320px">
+          <canvas id="doughnutChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: RESOURCE TRACKER -->
+  <div class="slide" id="slide-resources">
+    <div class="resource-grid">
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">&#128230; Add Resource</div>
+          <div style="padding:14px">
+            <div class="form-group">
+              <label class="form-label">Resource Name</label>
+              <input class="form-input" id="res-name" placeholder="e.g. Water Bottles" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select" id="res-cat">
+                <option value="Food">&#127860; Food</option>
+                <option value="Water">&#128167; Water</option>
+                <option value="Medical">&#128138; Medical</option>
+                <option value="Shelter">&#127968; Shelter</option>
+                <option value="Equipment">&#128295; Equipment</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quantity Available</label>
+              <input class="form-input" id="res-qty" type="number" placeholder="100" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Minimum Required</label>
+              <input class="form-input" id="res-min" type="number" placeholder="20" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input class="form-input" id="res-loc" placeholder="e.g. Camp A, Warehouse 2" />
+            </div>
+            <button class="btn btn-primary" onclick="addResource()">&#43; Add Resource</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">&#128230; Resource Inventory <span id="res-count"
+            style="margin-left:auto;background:#dbeafe;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:0.7rem;-webkit-text-fill-color:#1565c0">0</span>
+        </div>
+        <div style="padding:10px;max-height:520px;overflow-y:auto" id="resource-list">
+          <div class="empty-state" style="padding:40px">No resources added yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: INCIDENT LOG -->
+  <div class="slide" id="slide-incidents">
+    <div class="incident-grid">
+      <div>
+        <div class="card">
+          <div class="card-header">&#128221; Log Incident</div>
+          <div style="padding:14px">
+            <div class="form-group">
+              <label class="form-label">Incident Title</label>
+              <input class="form-input" id="inc-title" placeholder="e.g. Building collapse at Zone 3" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Type</label>
+              <select class="form-select" id="inc-type">
+                <option value="flood">&#127754; Flood</option>
+                <option value="fire">&#128293; Fire</option>
+                <option value="quake">&#127755; Earthquake</option>
+                <option value="medical">&#128138; Medical Emergency</option>
+                <option value="other">&#9888; Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Priority</label>
+              <select class="form-select" id="inc-priority">
+                <option value="P1">&#128308; P1 — Critical</option>
+                <option value="P2">&#128992; P2 — High</option>
+                <option value="P3">&#128994; P3 — Medium</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input class="form-input" id="inc-loc" placeholder="Zone / Area / Coordinates" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-input" id="inc-desc" rows="3"
+                placeholder="Brief description of the incident..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="addIncident()">&#128221; Log Incident</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">&#128221; Incident Log <span id="inc-count"
+            style="margin-left:auto;background:#dbeafe;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:0.7rem;-webkit-text-fill-color:#1565c0">0</span>
+        </div>
+        <div style="padding:10px;max-height:520px;overflow-y:auto" id="incident-list">
+          <div class="empty-state" style="padding:40px">No incidents logged yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="toast" id="toast"></div>
+  <footer>UAV Disaster Identification &amp; Alerting System &nbsp;|&nbsp; YOLOv8 Detection &nbsp;|&nbsp; Flask Backend
+  </footer>
+
+  <script>
+    function showSlide(name, btn) {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('slide-' + name).classList.add('active');
+      btn.classList.add('active');
+      if (name === 'gps' && map) setTimeout(() => map.invalidateSize(), 100);
+      if (name === 'analytics') {
+        if (!pieChart) initCharts();
+        else updateCharts();
+      }
+    }
+
+    function severityClass(s) {
+      return { HIGH: 'badge-HIGH', MEDIUM: 'badge-MEDIUM', NONE: 'badge-NONE' }[s] || 'badge-NONE';
+    }
+
+    async function updateStatus() {
+      try {
+        const d = await fetch('/status').then(r => r.json());
+        document.getElementById('s-humans').textContent = d.human_count;
+        document.getElementById('s-severity').innerHTML =
+          `<span class="badge ${severityClass(d.severity)}">${d.severity}</span>`;
+        document.getElementById('s-total').textContent = d.total_detections;
+        document.getElementById('g-lat').textContent = d.gps.latitude || '11.1271';
+        document.getElementById('g-lon').textContent = d.gps.longitude || '78.6569';
+        document.getElementById('g-alt').textContent = d.gps.altitude ? d.gps.altitude + ' m' : '320 m';
+        document.getElementById('g-temp').textContent = d.gps.weather ? d.gps.weather.temp : '34°C';
+        document.getElementById('g-wind').textContent = d.gps.weather ? d.gps.weather.wind : '12 km/h';
+        document.getElementById('g-time').textContent = d.last_alert_time || 'Fire Detected';
+        document.getElementById('tab-alert-count').textContent = d.alert_count;
+        document.getElementById('alert-count-badge').textContent = d.alert_count + ' Alerts';
+        if (d.gps.latitude && d.gps.longitude)
+          updateMap(d.gps.latitude, d.gps.longitude, d.gps.altitude, d.last_alert_time, d.human_count, d.severity);
+      } catch (e) { }
+    }
+
+    async function updateAlerts() {
+      try {
+        const alerts = await fetch('/alerts').then(r => r.json());
+        const grid = document.getElementById('alert-grid');
+        if (!alerts.length) {
+          grid.innerHTML = '<div class="empty-state">No alerts yet. Monitoring...</div>';
+          return;
+        }
+        grid.innerHTML = alerts.map(a => `
+        <div class="alert-card ${a.severity || ''}">
+          <div class="ac-top">
+            <div>
+              <div class="ac-humans">${a.humans_detected ?? a.humans ?? 0}</div>
+              <div class="ac-label">Human(s) Detected</div>
+            </div>
+            <span class="badge ${severityClass(a.severity)}">${a.severity}</span>
+          </div>
+          <div class="ac-time">&#128336; ${a.timestamp}</div>
+          <div class="ac-coords">&#128205; ${a.gps_location?.latitude ?? a.gps?.latitude ?? '—'}, ${a.gps_location?.longitude ?? a.gps?.longitude ?? '—'} &nbsp;|&nbsp; Alt: ${a.gps_location?.altitude ?? a.gps?.altitude ?? '—'} m</div>
+        </div>`).join('');
+        // Plot all alert markers on map
+        alerts.forEach(a => {
+          const lat = a.gps?.latitude ?? a.gps_location?.latitude;
+          const lon = a.gps?.longitude ?? a.gps_location?.longitude;
+          addAlertMarker(lat, lon, a.humans ?? a.humans_detected, a.severity, a.timestamp);
+        });
+      } catch (e) { }
+    }
+
+    function updateClock() {
+      document.getElementById('feed-time').textContent = new Date().toLocaleTimeString();
+    }
+
+    // ── MAP ──
+    var map = null;
+    var marker = null;
+    var alertMarkers = [];
+
+    function initMap(lat, lon) {
+      if (map) return;
+      map = L.map('map').setView([lat, lon], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+    }
+
+    var uavIcon = L.divIcon({
+      html: '<div style="background:#ff3b3b;border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 0 8px #ff3b3b"></div>',
+      iconSize: [18, 18], iconAnchor: [9, 9], className: ''
+    });
+
+    function updateMap(lat, lon, alt, time, humans, sev) {
+      if (!lat || !lon) return;
+      if (!map) initMap(lat, lon);
+      // Move/create live UAV marker
+      if (marker) {
+        marker.setLatLng([lat, lon]);
+      } else {
+        marker = L.marker([lat, lon], { icon: uavIcon }).addTo(map);
+      }
+      marker.bindPopup(
+        '<b>&#128641; UAV Detection</b><br>' +
+        'Humans: <b>' + humans + '</b> | Severity: <b>' + sev + '</b><br>' +
+        'Alt: ' + alt + 'm<br>' + time
+      ).openPopup();
+      map.setView([lat, lon], 14);
+    }
+
+    function addAlertMarker(lat, lon, humans, sev, time) {
+      if (!map || !lat || !lon) return;
+      var color = sev === 'HIGH' ? '#ff3b3b' : sev === 'MEDIUM' ? '#ff9500' : '#00aa55';
+      var icon = L.divIcon({
+        html: '<div style="background:' + color + ';border:2px solid #fff;border-radius:50%;width:14px;height:14px;box-shadow:0 0 6px ' + color + '"></div>',
+        iconSize: [14, 14], iconAnchor: [7, 7], className: ''
+      });
+      var m = L.marker([lat, lon], { icon: icon }).addTo(map);
+      m.bindPopup('<b>&#128680; Alert</b><br>Humans: ' + humans + '<br>Severity: ' + sev + '<br>' + time);
+      alertMarkers.push(m);
+    }
+
+    setInterval(updateStatus, 2000);
+    setInterval(updateAlerts, 3000);
+    setInterval(updateClock, 1000);
+    updateStatus(); updateAlerts(); updateClock();
+
+    function roleClass(role) {
+      const r = role.toLowerCase();
+      if (r === 'victim') return 'role-victim';
+      if (r === 'volunteer') return 'role-volunteer';
+      return 'role-rescue';
+    }
+
+    async function loadStats() {
+      try {
+        const s = await fetch('/contacts/stats').then(r => r.json());
+        document.getElementById('db-rescue').textContent = s.rescue_team;
+        document.getElementById('db-volunteers').textContent = s.volunteers;
+        document.getElementById('db-victims').textContent = s.victims;
+        document.getElementById('contact-count').textContent = s.total;
+      } catch (e) { }
+    }
+
+    async function loadContacts() {
+      const contacts = await fetch('/contacts').then(r => r.json());
+      const list = document.getElementById('contact-list');
+      if (!contacts.length) {
+        list.innerHTML = '<div class="empty-state" style="padding:20px">No contacts added yet.</div>';
+        return;
+      }
+      list.innerHTML = contacts.map(c => `
+      <div class="contact-row">
+        <div style="flex:1">
+          <div class="c-name">${c.name}</div>
+          <div class="c-phone">${c.phone}</div>
+          ${c.address ? '<div style="font-size:0.7rem;color:#1a6bb5">&#128205; ' + c.address + '</div>' : ''}
+          ${c.notes ? '<div style="font-size:0.7rem;color:#1a6bb5">&#128221; ' + c.notes + '</div>' : ''}
+          <div style="font-size:0.68rem;color:#90a4ae">Added: ${c.created_at}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span class="role-badge ${roleClass(c.role)}">${c.role}</span>
+          <button class="btn btn-danger" onclick="deleteContact('${c.id}')">&#10005;</button>
+        </div>
+      </div>`).join('');
+    }
+
+    async function addContact() {
+      const name = document.getElementById('c-name').value.trim();
+      const phone = document.getElementById('c-phone').value.trim();
+      const role = document.getElementById('c-role').value;
+      const address = document.getElementById('c-address').value.trim();
+      const notes = document.getElementById('c-notes').value.trim();
+      if (!name || !phone) { showToast('Name and phone are required.'); return; }
+      await fetch('/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, role, address, notes })
+      });
+      document.getElementById('c-name').value = '';
+      document.getElementById('c-phone').value = '';
+      document.getElementById('c-address').value = '';
+      document.getElementById('c-notes').value = '';
+      loadContacts(); loadStats();
+      showToast(name + ' added as ' + role + ' and saved to database.');
+    }
+
+    async function deleteContact(id) {
+      await fetch('/contacts/' + id, { method: 'DELETE' });
+      loadContacts(); loadStats();
+    }
+
+    // ── MESSAGES ──
+    const templates = {
+      rescue: 'Rescue team is en route to your location. Please stay where you are and signal if possible.',
+      evacuate: 'URGENT: Evacuate immediately. Move to higher ground. Follow rescue team instructions.',
+      safe: 'Stay calm and stay safe. Help is on the way. Avoid flood/fire zones until cleared.',
+      rescueteam: 'DEPLOY ORDER: Human presence confirmed at GPS coordinates. Proceed immediately for rescue operation. UAV surveillance active.',
+    };
+
+    function fillTemplate(key) {
+      document.getElementById('msg-text').value = templates[key];
+    }
+
+    async function sendMessage() {
+      const message = document.getElementById('msg-text').value.trim();
+      const target = document.getElementById('msg-target').value;
+      if (!message) { showToast('Please type a message first.'); return; }
+
+      // Optimistically show a pending entry immediately
+      const log = document.getElementById('msg-log');
+      const ts = new Date().toLocaleString();
+      const pendingId = 'pending-msg';
+      const pendingHtml = `<div id="${pendingId}" class="msg-row" style="opacity:0.5">
+      <div class="mr-top"><span class="mr-to">&#128172; Sending to ${target === 'all' ? 'All' : target}...</span></div>
+      <div class="mr-text">${message}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span class="mr-time">&#128336; ${ts}</span>
+        <span style="font-size:0.7rem;color:#1a6bb5;font-weight:600">&#8987; Sending...</span>
+      </div>
+    </div>`;
+      if (log.querySelector('.empty-state')) log.innerHTML = '';
+      log.insertAdjacentHTML('afterbegin', pendingHtml);
+
+      showToast('Sending...');
+      let res;
+      try {
+        res = await fetch('/send_message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, target })
+        }).then(r => r.json());
+      } catch (e) {
+        showToast('Network error. Please try again.');
+        document.getElementById(pendingId)?.remove();
+        return;
+      }
+
+      document.getElementById(pendingId)?.remove();
+
+      if (res.total === 0) {
+        showToast('No contacts found for selected target.');
+      } else if (res.sent_to && res.sent_to.length > 0 && res.failed.length === 0) {
+        showToast('SMS sent to ' + res.sent_to.length + ' contact(s): ' + res.sent_to.join(', '));
+        document.getElementById('msg-text').value = '';
+      } else if (res.sent_to.length > 0 && res.failed.length > 0) {
+        showToast('Sent: ' + res.sent_to.length + ' | Failed: ' + res.failed.length);
+        document.getElementById('msg-text').value = '';
+      } else {
+        showToast('Failed: ' + (res.failed ? res.failed.join(', ') : 'Unknown error'));
+      }
+      await loadMessages();
+    }
+
+    async function loadMessages() {
+      const msgs = await fetch('/messages').then(r => r.json());
+      const log = document.getElementById('msg-log');
+      document.getElementById('msg-count').textContent = msgs.length;
+      if (!msgs.length) {
+        log.innerHTML = '<div class="empty-state" style="padding:20px">No messages sent yet.</div>';
+        return;
+      }
+      log.innerHTML = msgs.map(m => `
+      <div class="msg-row">
+        <div class="mr-top">
+          <span class="mr-to">&#128172; ${m.sent_to || m.to} (${m.phone})</span>
+          <span class="role-badge ${roleClass(m.role)}">${m.role}</span>
+        </div>
+        <div class="mr-text">${m.message}</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <span class="mr-time">&#128336; ${m.timestamp}</span>
+          <span style="font-size:0.7rem;color:${m.status === 'Sent' ? '#00aa55' : '#cc2222'};font-weight:600">&#10003; ${m.status}</span>
+        </div>
+      </div>`).join('');
+    }
+
+    async function clearMessages() {
+      if (!confirm('Clear all message logs?')) return;
+      await fetch('/messages/clear', { method: 'DELETE' });
+      loadMessages();
+      showToast('Message log cleared.');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    document.getElementById('msg-text').addEventListener('input', function () {
+      document.getElementById('msg-char-count').textContent = this.value.length;
+    });
+
+    setInterval(loadMessages, 4000);
+    loadContacts(); loadStats(); loadMessages();
+    document.getElementById('feed').src = '/video_feed';
+
+    // ── RESOURCES ──
+    var resources = JSON.parse(localStorage.getItem('uav_resources') || '[]');
+
+    function saveResources() { localStorage.setItem('uav_resources', JSON.stringify(resources)); }
+
+    function statusClass(qty, min) {
+      const pct = min > 0 ? qty / min : 1;
+      if (pct <= 0.3) return 'critical';
+      if (pct <= 0.7) return 'low';
+      return 'ok';
+    }
+
+    function barColor(qty, min) {
+      const s = statusClass(qty, min);
+      return s === 'critical' ? '#ff3b3b' : s === 'low' ? '#ff9500' : '#00aa55';
+    }
+
+    function renderResources() {
+      const list = document.getElementById('resource-list');
+      document.getElementById('res-count').textContent = resources.length;
+      if (!resources.length) { list.innerHTML = '<div class="empty-state" style="padding:40px">No resources added yet.</div>'; return; }
+      list.innerHTML = resources.map((r, i) => {
+        const pct = r.min > 0 ? Math.min(100, Math.round((r.qty / r.min) * 100)) : 100;
+        const sc = statusClass(r.qty, r.min);
+        const bc = barColor(r.qty, r.min);
+        const alertBanner = (sc === 'critical' || sc === 'low') ? `
+        <div style="margin-top:8px;background:${sc === 'critical' ? '#ffeeee' : '#fff8e1'};border:1.5px solid ${sc === 'critical' ? '#cc0000' : '#ff9500'};border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span style="font-size:0.75rem;font-weight:700;color:${sc === 'critical' ? '#cc0000' : '#884400'}">&#9888; ${sc === 'critical' ? 'Critically low' : 'Low stock'} &mdash; Send SMS click here</span>
+          <button class="btn" style="padding:5px 12px;font-size:0.75rem;background:${sc === 'critical' ? '#cc0000' : '#ff9500'};color:#fff;white-space:nowrap;flex-shrink:0" onclick="sendShortageAlert(resources[${i}])">&#128241; Send SMS</button>
+        </div>` : '';
+        return `<div class="resource-item ${sc}">
+        <div style="flex:1">
+          <div class="res-name">${r.cat} ${r.name}</div>
+          <div class="res-qty">Qty: <b>${r.qty}</b> &nbsp;|&nbsp; Min: <b>${r.min}</b> &nbsp;|&nbsp; &#128205; ${r.loc || '—'}</div>
+          <div class="res-bar-wrap"><div class="res-bar" style="width:${pct}%;background:${bc}"></div></div>
+          ${alertBanner}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:12px">
+          <span style="font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;background:${sc === 'critical' ? '#ffcccc' : sc === 'low' ? '#ffe8cc' : '#ccffdd'};color:${sc === 'critical' ? '#cc0000' : sc === 'low' ? '#884400' : '#006622'}">${sc.toUpperCase()}</span>
+          <div style="display:flex;gap:4px">
+            <button class="btn" style="padding:3px 8px;font-size:0.7rem;background:#1e90ff;color:#fff" onclick="updateQty(${i},-1)">&#8722;</button>
+            <button class="btn" style="padding:3px 8px;font-size:0.7rem;background:#00aa55;color:#fff" onclick="updateQty(${i},1)">&#43;</button>
+            <button class="btn btn-danger" style="padding:3px 8px;font-size:0.7rem" onclick="deleteResource(${i})">&#10005;</button>
+          </div>
+        </div>
+      </div>`;
+      }).join('');
+    }
+
+    async function sendShortageAlert(r) {
+      showToast('⚠️ Shortage detected! Sending SMS to all contacts...');
+      try {
+        const res = await fetch('/send_shortage_alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: r.name, cat: r.cat, qty: r.qty, min: r.min, loc: r.loc })
+        }).then(r => r.json());
+        showToast('📱 Shortage SMS sent to ' + res.sent + ' contact(s)!');
+      } catch (e) {
+        showToast('Failed to send shortage alert.');
+      }
+    }
+
+    function addResource() {
+      const name = document.getElementById('res-name').value.trim();
+      const qty = parseInt(document.getElementById('res-qty').value) || 0;
+      const min = parseInt(document.getElementById('res-min').value) || 0;
+      const cat = document.getElementById('res-cat').value;
+      const loc = document.getElementById('res-loc').value.trim();
+      if (!name) { showToast('Resource name is required.'); return; }
+      resources.unshift({ name, qty, min, cat, loc });
+      saveResources(); renderResources();
+      document.getElementById('res-name').value = '';
+      document.getElementById('res-qty').value = '';
+      document.getElementById('res-min').value = '';
+      document.getElementById('res-loc').value = '';
+      showToast(name + ' added to inventory.');
+      if (statusClass(qty, min) === 'critical') sendShortageAlert(resources[0]);
+    }
+
+    function updateQty(i, delta) {
+      resources[i].qty = Math.max(0, resources[i].qty + delta);
+      const r = resources[i];
+      const wasCritical = statusClass(r.qty - delta, r.min) !== 'critical';
+      const nowCritical = statusClass(r.qty, r.min) === 'critical';
+      if (wasCritical && nowCritical) {
+        sendShortageAlert(r);
+      }
+      saveResources(); renderResources();
+    }
+
+    function deleteResource(i) {
+      resources.splice(i, 1);
+      saveResources(); renderResources();
+    }
+
+    // ── INCIDENTS ──
+    var incidents = JSON.parse(localStorage.getItem('uav_incidents') || '[]');
+
+    function saveIncidents() { localStorage.setItem('uav_incidents', JSON.stringify(incidents)); }
+
+    const typeLabels = { flood: '&#127754; Flood', fire: '&#128293; Fire', quake: '&#127755; Earthquake', medical: '&#128138; Medical', other: '&#9888; Other' };
+
+    function renderIncidents() {
+      const list = document.getElementById('incident-list');
+      document.getElementById('inc-count').textContent = incidents.length;
+      if (!incidents.length) { list.innerHTML = '<div class="empty-state" style="padding:40px">No incidents logged yet.</div>'; return; }
+      list.innerHTML = incidents.map((inc, i) => `
+      <div class="incident-row ${inc.priority}">
+        <div class="inc-top">
+          <span class="inc-title">${inc.title}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="inc-type inc-${inc.type}">${typeLabels[inc.type] || inc.type}</span>
+            <span class="inc-status status-${inc.status}">${inc.status === 'active' ? '&#128308; Active' : inc.status === 'progress' ? '&#128992; In Progress' : '&#9989; Resolved'}</span>
+          </div>
+        </div>
+        <div class="inc-meta">&#128205; ${inc.loc || '—'} &nbsp;|&nbsp; &#128336; ${inc.time} &nbsp;|&nbsp; Priority: <b>${inc.priority}</b></div>
+        ${inc.desc ? '<div style="font-size:0.78rem;color:#333;margin-top:4px">' + inc.desc + '</div>' : ''}
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn" style="padding:3px 10px;font-size:0.7rem;background:#ff9500;color:#fff" onclick="setStatus(${i},'progress')">&#128992; In Progress</button>
+          <button class="btn" style="padding:3px 10px;font-size:0.7rem;background:#00aa55;color:#fff" onclick="setStatus(${i},'resolved')">&#9989; Resolve</button>
+          <button class="btn btn-danger" style="padding:3px 10px;font-size:0.7rem" onclick="deleteIncident(${i})">&#10005;</button>
+        </div>
+      </div>`).join('');
+    }
+
+    function addIncident() {
+      const title = document.getElementById('inc-title').value.trim();
+      const type = document.getElementById('inc-type').value;
+      const priority = document.getElementById('inc-priority').value;
+      const loc = document.getElementById('inc-loc').value.trim();
+      const desc = document.getElementById('inc-desc').value.trim();
+      if (!title) { showToast('Incident title is required.'); return; }
+      incidents.unshift({ title, type, priority, loc, desc, status: 'active', time: new Date().toLocaleString() });
+      saveIncidents(); renderIncidents();
+      document.getElementById('inc-title').value = '';
+      document.getElementById('inc-loc').value = '';
+      document.getElementById('inc-desc').value = '';
+      showToast('Incident logged: ' + title);
+    }
+
+    function setStatus(i, status) {
+      incidents[i].status = status;
+      saveIncidents(); renderIncidents();
+    }
+
+    function deleteIncident(i) {
+      incidents.splice(i, 1);
+      saveIncidents(); renderIncidents();
+    }
+
+    renderResources(); renderIncidents();
+
+    // ── CHARTS ──
+    var pieChart, barChart, lineChart, doughnutChart;
+
+    function initCharts() {
+      const pieCtx = document.getElementById('pieChart').getContext('2d');
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      const lineCtx = document.getElementById('lineChart').getContext('2d');
+      const dCtx = document.getElementById('doughnutChart').getContext('2d');
+      pieChart = new Chart(pieCtx, { type: 'pie', data: { labels: ['Rescue Team', 'Volunteers', 'Victims'], datasets: [{ data: [0,0,0], backgroundColor: ['#a0d4ff','#a8f0c6','#ffb3b3'], borderColor: ['#0044cc','#007700','#cc0000'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#1a1a2e', font: { weight: '700' } } } } } });
+      barChart = new Chart(barCtx, { type: 'bar', data: { labels: ['NONE','MEDIUM','HIGH'], datasets: [{ label: 'Alerts', data: [0,0,0], backgroundColor: ['#a8f0c6','#fffacc','#ffb3b3'], borderColor: ['#007700','#ccaa00','#cc0000'], borderWidth: 2, borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#1a1a2e' }, grid: { color: '#eee' } }, x: { ticks: { color: '#1a1a2e' }, grid: { display: false } } } } });
+      lineChart = new Chart(lineCtx, { type: 'line', data: { labels: [], datasets: [{ label: 'Humans Detected', data: [], borderColor: '#0044cc', backgroundColor: '#d6f0ff80', fill: true, tension: 0.4, pointBackgroundColor: '#0044cc', pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#1a1a2e', font: { weight: '700' } } } }, scales: { y: { beginAtZero: true, ticks: { color: '#1a1a2e' }, grid: { color: '#eee' } }, x: { ticks: { color: '#1a1a2e', maxRotation: 30 }, grid: { display: false } } } } });
+      doughnutChart = new Chart(dCtx, { type: 'doughnut', data: { labels: ['Rescue Team', 'Volunteers', 'Victims'], datasets: [{ data: [0,0,0], backgroundColor: ['#a0d4ff','#a8f0c6','#ffb3b3'], borderColor: ['#0044cc','#007700','#cc0000'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#1a1a2e', font: { weight: '700' } } } } } });
+      updateCharts();
+    }
+
+    async function updateCharts() {
+      try {
+        const [stats, alerts, msgs] = await Promise.all([
+          fetch('/contacts/stats').then(r => r.json()),
+          fetch('/alerts').then(r => r.json()),
+          fetch('/messages').then(r => r.json())
+        ]);
+        pieChart.data.datasets[0].data = [stats.rescue_team||0, stats.volunteers||0, stats.victims||0];
+        pieChart.update();
+        const sev = { NONE: 0, MEDIUM: 0, HIGH: 0 };
+        alerts.forEach(a => { if (sev[a.severity] !== undefined) sev[a.severity]++; });
+        barChart.data.datasets[0].data = [sev.NONE, sev.MEDIUM, sev.HIGH];
+        barChart.update();
+        const recent = alerts.slice(-10);
+        lineChart.data.labels = recent.map(a => a.timestamp ? a.timestamp.split(' ')[1] || a.timestamp : '');
+        lineChart.data.datasets[0].data = recent.map(a => a.humans_detected ?? a.humans ?? 0);
+        lineChart.update();
+        const roles = { 'Rescue Team': 0, 'Volunteer': 0, 'Victim': 0 };
+        msgs.forEach(m => { if (roles[m.role] !== undefined) roles[m.role]++; });
+        doughnutChart.data.datasets[0].data = [roles['Rescue Team'], roles['Volunteer'], roles['Victim']];
+        doughnutChart.update();
+      } catch (e) { }
+    }
+
+    setInterval(() => { if (pieChart) updateCharts(); }, 5000);
+  </script>
+</body>
+</html>

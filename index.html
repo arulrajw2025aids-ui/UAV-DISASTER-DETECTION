@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UAV Disaster Detection System</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @keyframes rainbowBg {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes rainbowText {
+    0%   { color: #cc0000; }
+    25%  { color: #ccaa00; }
+    50%  { color: #007700; }
+    75%  { color: #0044cc; }
+    100% { color: #cc0000; }
+  }
+
+  body {
+    background: linear-gradient(270deg,
+      #ffd6d6, #ffddd6, #ffe4d6, #ffebd6, #fff2d6, #fff9d6,
+      #ffffd6, #f2ffd6, #e5ffd6, #d6ffd6, #d6ffe5, #d6fff2,
+      #d6ffff, #d6f2ff, #d6e5ff, #d6d8ff, #ddd6ff, #e4d6ff,
+      #ebd6ff, #f2d6ff, #f9d6ff, #ffd6ff, #ffd6f2, #ffd6e5,
+      #ffd6d6);
+    background-size: 400% 400%;
+    animation: rainbowBg 20s ease infinite;
+    color: #1a1a2e;
+    font-family: 'Roboto', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ HEADER ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  header {
+    background: linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25)), url('/static/img/drone_bg.png') center/cover no-repeat;
+    border-bottom: 3px solid #fff;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo h1 { font-size: 1.3rem; font-weight: 700; color: #1a1a2e; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(255,255,255,0.4); }
+  .logo p  { font-size: 0.72rem; color: #2d2d2d; letter-spacing: 2px; text-transform: uppercase; opacity: 0.9; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.5); border: 2px solid #1a1a2e;
+    padding: 6px 16px; border-radius: 20px;
+    font-size: 0.8rem; color: #1a1a2e; font-weight: 700;
+  }
+  .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #1a1a2e; animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
+
+  .user-pill {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.9); border: 2px solid #fff;
+    padding: 6px 14px; border-radius: 20px; font-size: 0.8rem;
+  }
+  .user-pill a {
+    color: #cc0000; text-decoration: none; font-size: 0.75rem;
+    margin-left: 6px; border-left: 1px solid #aaa; padding-left: 10px; font-weight: 700;
+  }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ TABS ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  .tabs {
+    display: flex;
+    background: linear-gradient(90deg, #fff0f0, #fff5e6, #fffde6, #f0fff0, #e6ffff, #e6eeff, #f5e6ff, #ffe6f5, #fff0f0);
+    border-bottom: 3px solid transparent;
+    border-image: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc) 1;
+    padding: 0 28px;
+  }
+  .tab-btn {
+    padding: 14px 28px;
+    font-size: 0.88rem; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    border: none; background: none;
+    color: #666; cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -3px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab-btn.active { color: #4a0080; border-bottom-color: #4a0080; }
+  .tab-btn:nth-child(1).active { color: #990000; border-bottom-color: #990000; }
+  .tab-btn:nth-child(2).active { color: #884400; border-bottom-color: #884400; }
+  .tab-btn:nth-child(3).active { color: #006622; border-bottom-color: #006622; }
+  .tab-btn:nth-child(4).active { color: #004499; border-bottom-color: #004499; }
+  .tab-btn:nth-child(6).active { color: #006644; border-bottom-color: #006644; }
+  .tab-btn:nth-child(7).active { color: #7700aa; border-bottom-color: #7700aa; }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ RESOURCE TRACKER ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  .resource-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+  .resource-item {
+    background: #fff; border-radius: 10px; padding: 12px 16px;
+    margin-bottom: 8px; border-left: 4px solid #1e90ff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .resource-item.critical { border-left-color: #ff3b3b; background: #fff5f5; }
+  .resource-item.low      { border-left-color: #ff9500; background: #fffbf0; }
+  .resource-item.ok       { border-left-color: #00aa55; background: #f0fff6; }
+  .res-name  { font-weight: 700; color: #1a1a2e; font-size: 0.88rem; }
+  .res-qty   { font-size: 0.75rem; color: #555; margin-top: 2px; }
+  .res-bar-wrap { width: 100px; background: #eee; border-radius: 6px; height: 8px; margin-top: 6px; }
+  .res-bar { height: 8px; border-radius: 6px; transition: width 0.4s; }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ INCIDENT LOG ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  .incident-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+  .incident-row {
+    background: #fff; border-radius: 10px; padding: 12px 16px;
+    margin-bottom: 8px; border-left: 4px solid #888;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .incident-row.P1 { border-left-color: #ff3b3b; }
+  .incident-row.P2 { border-left-color: #ff9500; }
+  .incident-row.P3 { border-left-color: #1e90ff; }
+  .inc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .inc-title { font-weight: 700; color: #1a1a2e; font-size: 0.88rem; }
+  .inc-type  { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+  .inc-flood   { background: #cce0ff; color: #0044cc; }
+  .inc-fire    { background: #ffcccc; color: #cc0000; }
+  .inc-quake   { background: #ffe8cc; color: #884400; }
+  .inc-medical { background: #ccffdd; color: #006622; }
+  .inc-other   { background: #eee; color: #555; }
+  .inc-status  { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .status-active   { background: #ffcccc; color: #cc0000; }
+  .status-progress { background: #ffe8cc; color: #884400; }
+  .status-resolved { background: #ccffdd; color: #006622; }
+  .inc-meta { font-size: 0.72rem; color: #555; margin-top: 4px; }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    flex: 1;
+  }
+
+  .tab-btn:hover:not(.active) { color: #4a0080; }
+  .slide { display: none; padding: 24px 28px; flex: 1; background: transparent; }
+  .slide.active { display: block; }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ CARDS ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  .card {
+    background: rgba(255,255,255,0.88);
+    border: 2px solid transparent;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    background-clip: padding-box;
+    outline: 2px solid transparent;
+    position: relative;
+  }
+  .card::before {
+    content: '';
+    position: absolute; inset: -2px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #cc0000, #ccaa00, #007700, #0044cc);
+    z-index: -1;
+  }
+  .card-header {
+    padding: 12px 18px;
+    border-bottom: 2px solid transparent;
+    border-image: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc) 1;
+    font-size: 0.78rem; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    background: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ SLIDE 1: DETECTION ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  .detection-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+  }
+
+  .video-wrap { position: relative; background: #000; max-width: 480px; }
+  .video-wrap img { width: 100%; display: block; height: 300px; object-fit: cover; }
+  .video-overlay {
+    position: absolute; top: 12px; right: 12px;
+    background: #00000099; border: 1px solid #90caf9;
+    border-radius: 8px; padding: 6px 12px;
+    font-size: 0.75rem; color: #1565c0;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px; margin-top: 20px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px; padding: 18px; text-align: center;
+    border: 2px solid transparent;
+    position: relative;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute; inset: -2px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #cc0000, #ccaa00, #007700, #0044cc);
+    z-index: -1;
+  }
+  .stat-val   { font-size: 2.2rem; font-weight: 800; line-height: 1; animation: rainbowText 8s linear infinite; }
+  .stat-label { font-size: 0.72rem; color: #222; margin-top: 6px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ SLIDE 2: GPS MAP ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  .map-info-grid {
+    display: grid; grid-template-columns: repeat(6,1fr);
+    gap: 10px; padding: 14px;
+  }
+  .map-info-item { background: linear-gradient(135deg, #fff0f0, #e8f4fd); border-radius: 8px; padding: 10px 14px; border-left: 3px solid #ff8800; }
+  .map-info-item .label { font-size: 0.68rem; color: #333; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .map-info-item .val   { font-size: 1rem; font-weight: 700; color: #1a1a2e; margin-top: 4px; }
+
+  #slide-detection { background: linear-gradient(135deg, #ffd6d6, #ffebd6, #ffffd6, #d6ffd6); }
+  #slide-alerts    { background: linear-gradient(135deg, #d6ffff, #d6e5ff, #ddd6ff, #f2d6ff); }
+  #slide-messages  { background: linear-gradient(135deg, #ffd6f2, #ffd6d6, #ffebd6, #ffffd6); }
+  #slide-analytics { background: linear-gradient(135deg, #d6ffd6, #d6fff2, #d6ffff, #d6f2ff); }
+  #slide-resources { background: linear-gradient(135deg, #ebd6ff, #f9d6ff, #ffd6ff, #ffd6f2); }
+  #slide-incidents { background: linear-gradient(135deg, #ffffd6, #d6ffd6, #d6ffff, #d6d8ff); }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ BADGES ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  .badge {
+    display: inline-block; padding: 4px 14px;
+    border-radius: 20px; font-size: 0.78rem;
+    font-weight: 700; letter-spacing: 1px;
+  }
+  .badge-NONE   { background: #00ff8820; color: #00aa55; border: 1px solid #00ff8840; }
+  .badge-MEDIUM { background: #ff950020; color: #cc7700; border: 1px solid #ff950040; }
+  .badge-HIGH   { background: #ff3b3b20; color: #cc2222; border: 1px solid #ff3b3b40; }
+
+  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ SLIDE 2: ALERTS ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  .alerts-header-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .alerts-header-row h2 { font-size: 1rem; font-weight: 700; color: #1a1a2e; }
+  .alert-count-badge {
+    background: #dbeafe; border: 1px solid #90caf9;
+    color: #0d3b7a; font-weight: 700;
+    padding: 4px 14px; border-radius: 20px; font-size: 0.82rem;
+  }
+
+  .alerts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+  .alert-card {
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px; padding: 16px;
+    border-top: 4px solid #ff8800;
+    transition: box-shadow 0.2s;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .alert-card:hover { box-shadow: 0 6px 24px rgba(136,0,255,0.2); }
+  .alert-card.HIGH   { border-top-color: #ff3b3b; }
+  .alert-card.MEDIUM { border-top-color: #ff9500; }
+  .alert-card.NONE   { border-top-color: #00cc66; }
+
+  .alert-card .ac-top {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 10px;
+  }
+  .alert-card .ac-humans {
+    font-size: 1.6rem; font-weight: 800; color: #1a1a2e; line-height: 1;
+  }
+  .alert-card .ac-label { font-size: 0.7rem; color: #333; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  .alert-card .ac-time  { font-size: 0.75rem; color: #333; margin-top: 8px; }
+  .alert-card .ac-coords{ font-size: 0.75rem; color: #333; margin-top: 4px; }
+
+  .empty-state { text-align: center; color: #333; padding: 60px; font-size: 0.9rem; font-weight: 600; }
+  .msg-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+  }
+  .form-label { font-size: 0.72rem; font-weight: 700; color: #1a1a2e; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid #90caf9; border-radius: 8px;
+    background: #e8f4fd; color: #1a1a2e;
+    font-size: 0.88rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: #1565c0; }
+  .form-select {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid #90caf9; border-radius: 8px;
+    background: #e8f4fd; color: #1a1a2e;
+    font-size: 0.88rem; outline: none;
+  }
+  .form-group { margin-bottom: 12px; }
+  .btn {
+    padding: 10px 20px; border: none; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    letter-spacing: 0.5px; transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: #1e90ff; color: #fff; }
+  .btn-danger  { background: #ff3b3b; color: #fff; padding: 6px 12px; font-size: 0.75rem; }
+  .btn-send    { background: #1565c0; color: #fff; width: 100%; padding: 12px; font-size: 0.9rem; }
+
+  .contact-list { margin-top: 12px; max-height: 260px; overflow-y: auto; }
+  .contact-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(135deg, #fff0f0, #fff8e1, #f0fff4, #e8f4fd);
+    border-radius: 8px; padding: 8px 12px; margin-bottom: 6px;
+    border-left: 4px solid;
+    border-image: linear-gradient(180deg, #ff0000, #0088ff) 1;
+  }
+  .contact-row .c-name  { font-weight: 700; color: #1a1a2e; font-size: 0.85rem; }
+  .contact-row .c-phone { font-size: 0.75rem; color: #333; font-weight: 600; }
+  .role-badge {
+    font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
+    border-radius: 10px; text-transform: uppercase;
+  }
+  .role-rescue    { background: #1e90ff20; color: #1565c0; border: 1px solid #1e90ff40; }
+  .role-victim    { background: #ff3b3b20; color: #cc2222; border: 1px solid #ff3b3b40; }
+  .role-volunteer { background: #00ff8820; color: #00aa55; border: 1px solid #00ff8840; }
+
+  .msg-log { max-height: 420px; overflow-y: auto; }
+  .msg-row {
+    background: rgba(255,255,255,0.9);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+    border-left: 4px solid #ff8800;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .msg-row .mr-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .msg-row .mr-to   { font-weight: 700; color: #1a1a2e; font-size: 0.85rem; }
+  .msg-row .mr-time { font-size: 0.7rem; color: #333; }
+  .msg-row .mr-text { font-size: 0.82rem; color: #1a1a2e; margin-top: 4px; }
+  .card-header .btn {
+    -webkit-text-fill-color: #fff;
+    background: #ff3b3b;
+    background-clip: unset;
+    -webkit-background-clip: unset;
+  }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #1565c0;
+    color: #fff;
+    padding: 12px 20px; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    opacity: 0; transition: opacity 0.3s;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+
+  footer {
+    text-align: center; padding: 14px;
+    font-size: 0.72rem; font-weight: 700;
+    border-top: 3px solid transparent;
+    border-image: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc) 1;
+    margin-top: auto;
+    background: linear-gradient(90deg, #cc0000, #ccaa00, #007700, #0044cc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* NAVBAR */
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 60px;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .logo-icon { font-size: 2rem; }
+  .logo-text { font-size: 1.1rem; font-weight: 800; line-height: 1.2; color: #1a1a2e; }
+  .logo-text span { color: #1565c0; }
+
+  .nav-links { display: flex; gap: 30px; align-items: center; }
+  .nav-links a {
+    text-decoration: none; color: #4a5568; font-size: 0.95rem; font-weight: 600;
+    transition: color 0.2s; position: relative;
+  }
+  .nav-links a:hover { color: #1565c0; }
+  .nav-links a.active { color: #1565c0; }
+  .nav-links a.active::after {
+    content: ''; position: absolute; bottom: -8px; left: 0; width: 100%; height: 2px; background: #1565c0;
+  }
+
+  .btn {
+    padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+    cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.2s; border: none;
+  }
+  .btn-primary { background: #1565c0; color: #ffffff; }
+  .btn-primary:hover { background: #1e88e5; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(21,101,192,0.3); }
+  .btn-outline { background: transparent; color: #1565c0; border: 1px solid #1565c0; }
+  .btn-outline:hover { background: rgba(21,101,192,0.1); }
+
+  /* HERO SECTION */
+  .hero {
+    position: relative;
+    padding: 120px 60px 220px;
+    background: linear-gradient(rgba(0, 0, 0, 0.492), rgba(0, 0, 0, 0.536)), url('/static/img/drone_bg.png') center/cover no-repeat;
+    color: #ffffff;
+  }
+  .hero-content {
+    position: relative; z-index: 1;
+    max-width: 600px;
+  }
+  .hero-tag {
+    font-size: 0.85rem; font-weight: 700; color: #ffffff; letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 20px;
+    border-left: 2px solid #ffffff; padding-left: 12px;
+  }
+  .hero-title {
+    font-size: 4.5rem; font-weight: 800; line-height: 1.1; margin-bottom: 24px;
+    letter-spacing: -1px;
+  }
+  .hero-desc {
+    font-size: 1.15rem; line-height: 1.6; color: #e2e8f0; margin-bottom: 40px;
+    max-width: 500px;
+  }
+  .hero-actions { display: flex; gap: 16px; }
+
+  /* FEATURES CARDS (OVERLAPPING) */
+  .features-wrapper {
+    position: relative;
+    max-width: 1300px; margin: -100px auto 0; padding: 0 60px;
+    z-index: 10;
+  }
+  .features-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px; overflow: hidden;
+  }
+  .feature-card {
+    padding: 30px; border-right: 1px solid rgba(255,255,255,0.1);
+    display: flex; flex-direction: column; gap: 16px;
+    transition: background 0.3s;
+  }
+  .feature-card:hover { background: rgba(255,255,255,0.05); }
+  .feature-card:last-child { border-right: none; }
+  .fc-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: #ffffff; margin-bottom: 8px;
+  }
+  .fc-icon.blue   { background: #3b82f6; }
+  .fc-icon.green  { background: #10b981; }
+  .fc-icon.orange { background: #f59e0b; }
+  .fc-icon.purple { background: #8b5cf6; }
+  
+  .fc-title { color: #ffffff; font-weight: 700; font-size: 1.05rem; }
+  .fc-desc  { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; }
+
+  /* BUILT FOR EMERGENCIES */
+  .emergencies { text-align: center; padding: 100px 60px; background: #f8fafc; }
+  .em-tag { color: #1565c0; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+  .em-title { font-size: 2.5rem; font-weight: 800; color: #1e293b; margin-bottom: 16px; }
+  .em-desc { color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 60px; line-height: 1.6; }
+  
+  .em-icons {
+    display: flex; justify-content: center; gap: 80px; flex-wrap: wrap;
+  }
+  .em-item { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .em-item .icon { font-size: 2.5rem; color: #1565c0; }
+  .em-item span { font-weight: 700; color: #334155; font-size: 0.95rem; }
+
+  /* NEW: HOW IT WORKS */
+  .how-it-works { padding: 100px 60px; background: #ffffff; text-align: center; }
+  .step-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; margin-top: 50px; max-width: 1200px; margin-left: auto; margin-right: auto; }
+  .step-card { padding: 30px; background: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; position: relative; }
+  .step-number { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 40px; height: 40px; background: #1565c0; color: #fff; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; font-size: 1.2rem; border: 4px solid #fff; }
+  .step-title { font-weight: 800; color: #1e293b; margin-top: 16px; margin-bottom: 10px; font-size: 1.1rem; }
+  .step-desc { color: #64748b; font-size: 0.95rem; line-height: 1.6; }
+
+  /* NEW: CONTACT */
+  .contact-section { padding: 100px 60px; background: #f8fafc; text-align: center; }
+  .contact-wrap { max-width: 600px; margin: 50px auto 0; background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+  .contact-wrap .form-group { text-align: left; margin-bottom: 20px; }
+  .contact-wrap label { font-weight: 700; color: #1e293b; margin-bottom: 8px; display: block; font-size: 0.9rem; }
+  .contact-wrap input, .contact-wrap textarea { width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+  .contact-wrap input:focus, .contact-wrap textarea:focus { border-color: #1565c0; }
+  
+
+  .contact-details { display: flex; flex-direction: column; gap: 20px; }
+  .contact-item { display: flex; align-items: flex-start; gap: 16px; padding: 16px; background: #f8fafc; border-radius: 12px; border-left: 4px solid #1565c0; }
+  .contact-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .contact-label { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .contact-value { font-size: 1rem; font-weight: 600; color: #1e293b; }
+  /* OVERRIDE INDEX HEADER TO NOT CONFLICT */
+  #dashboard-section { padding-top: 40px; padding-bottom: 40px; background: #ffffff; }
+  .dash-container { max-width: 1400px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-height: 800px; border: 1px solid #e2e8f0; }
+
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+  <nav class="navbar">
+    <a href="#home" class="logo">
+      <span class="logo-icon">&#128641;</span>
+      <div class="logo-text">UAV DISASTER<br><span>DETECTION</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="user-pill">
+        <span style="color:#1a6bb5">&#128100;</span>
+        <span style="color:#1565c0;font-weight:600">{{ username }}</span>
+        <a href="/logout">Logout &#9211;</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="home">
+    <div class="hero-content">
+      <div class="hero-tag">SMARTER DETECTION. FASTER RESPONSE. SAVING LIVES.</div>
+      <h1 class="hero-title">UAV-Powered<br>Disaster Management</h1>
+      <p class="hero-desc">Real-time aerial intelligence to detect disasters early, assess damage, and support faster decision making.</p>
+      <div class="hero-actions">
+        <a href="javascript:void(0)" onclick="openDashboardFullscreen()" class="btn btn-primary">&#128641; Launch Dashboard</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- OVERLAPPING FEATURES -->
+  <div class="features-wrapper" id="features">
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="fc-icon blue">&#128247;</div>
+        <div class="fc-title">Real-time Detection</div>
+        <div class="fc-desc">AI-powered analysis of UAV footage for instant threat identification.</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon green">&#128506;</div>
+        <div class="fc-title">Area Mapping</div>
+        <div class="fc-desc">High-resolution mapping for accurate situational awareness.</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon orange">&#128200;</div>
+        <div class="fc-title">Damage Assessment</div>
+        <div class="fc-desc">Evaluate impact and infrastructure damage efficiently.</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon purple">&#128680;</div>
+        <div class="fc-title">Alerts & Notifications</div>
+        <div class="fc-desc">Timely alerts to help authorities take immediate action.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUILT FOR EMERGENCIES -->
+  <section class="emergencies">
+    <div class="em-tag">BUILT FOR EMERGENCIES</div>
+    <h2 class="em-title">Supporting Teams. Saving Lives.</h2>
+    <p class="em-desc">Our UAV-based system empowers emergency teams with real-time data, helping them make faster decisions and save more lives.</p>
+    
+    <div class="em-icons">
+      <div class="em-item">
+        <div class="icon">&#127754;</div>
+        <span>Floods</span>
+      </div>
+      <div class="em-item">
+        <div class="icon">&#127755;</div>
+        <span>Earthquakes</span>
+      </div>
+      <div class="em-item">
+        <div class="icon">&#127956;</div>
+        <span>Landslides</span>
+      </div>
+      <div class="em-item">
+        <div class="icon">&#127786;</div>
+        <span>Cyclones</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="em-tag">OUR PROCESS</div>
+    <h2 class="em-title">How It Works</h2>
+    <p class="em-desc">From drone deployment to active rescue, our automated system ensures minimal delay.</p>
+    <div class="step-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <div class="step-title">UAV Deployment</div>
+        <div class="step-desc">Drones are deployed over disaster-struck areas to continuously capture live video feeds.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <div class="step-title">AI Processing</div>
+        <div class="step-desc">The YOLOv8 AI engine scans incoming footage for human shapes and assesses severity in real-time.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <div class="step-title">Instant Alerts</div>
+        <div class="step-desc">If a human is detected, GPS coordinates are logged, and an alert is broadcasted immediately.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-number">4</div>
+        <div class="step-title">Rescue Action</div>
+        <div class="step-desc">Rescue teams receive SMS alerts with coordinates, allowing for swift, targeted operations.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact-section" id="contact">
+    <div class="em-tag">GET IN TOUCH</div>
+    <h2 class="em-title">Contact Us</h2>
+    <p class="em-desc">Reach out to our team for support, deployment queries, or emergency coordination.</p>
+    <div class="contact-wrap">
+      <div class="contact-details">
+        <div class="contact-item">
+          <div class="contact-icon">&#128222;</div>
+          <div>
+            <div class="contact-label">Phone</div>
+            <div class="contact-value">+91 98765 43210</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">&#128231;</div>
+          <div>
+            <div class="contact-label">Email</div>
+            <div class="contact-value">support@uavdisaster.in</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">&#128205;</div>
+          <div>
+            <div class="contact-label">Address</div>
+            <div class="contact-value">UAV Disaster Response Center, Tamil Nadu, India</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">&#128336;</div>
+          <div>
+            <div class="contact-label">Support Hours</div>
+            <div class="contact-value">24 / 7 Emergency Support</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<div class="toast" id="toast"></div>
+<footer>UAV Disaster Identification &amp; Alerting System &nbsp;|&nbsp; YOLOv8 Detection &nbsp;|&nbsp; Flask Backend</footer>
+
+<script>
+  function openDashboardFullscreen() {
+    const w = window.open('/dashboard', '_blank');
+    w.addEventListener('load', () => {
+      const el = w.document.documentElement;
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (req) req.call(el);
+    });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UAV System - Login</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @keyframes rainbowBg {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  body {
+    background: linear-gradient(270deg, #ffd6d6, #d6f0ff, #d6ffd6, #fffbd6, #ffd6d6);
+    background-size: 400% 400%;
+    animation: rainbowBg 20s ease infinite;
+    color: #1a3a60;
+    font-family: 'Roboto', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .box {
+    background: #ffffff;
+    border: 1px solid #c5dff8;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 430px;
+    position: relative;
+    box-shadow: 0 8px 40px #1e90ff18, 0 2px 8px #00000010;
+    overflow: hidden;
+    animation: fadeUp 0.5s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+  .box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #1565c0, #1e90ff, #42a5f5, #1e90ff, #1565c0);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  .brand {
+    text-align: center;
+    padding: 36px 40px 0;
+  }
+  .brand .icon {
+    font-size: 3rem; display: block; margin-bottom: 12px;
+    filter: drop-shadow(0 4px 8px #1e90ff40);
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  .brand h1 {
+    font-size: 1.25rem; font-weight: 800; letter-spacing: 3px;
+    color: #1565c0;
+  }
+  .brand p { font-size: 0.68rem; color: #5a8ab0; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 6px; }
+
+  .tab-row {
+    display: flex;
+    margin: 28px 40px 0;
+    border-bottom: 2px solid #dbeafe;
+    gap: 4px;
+  }
+  .tab {
+    flex: 1; padding: 10px;
+    text-align: center;
+    font-size: 0.8rem; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: #90a4ae; cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.25s;
+    user-select: none;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab.active {
+    color: #1565c0;
+    border-bottom-color: #1e90ff;
+    background: #e8f4fd;
+  }
+  .tab:hover:not(.active) { color: #1a6bb5; background: #f0f7ff; }
+
+  .form-wrap { padding: 24px 40px 32px; }
+  .form-panel { display: none; }
+  .form-panel.active { display: block; }
+
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block;
+    font-size: 0.68rem; font-weight: 700;
+    color: #1a6bb5; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .input-wrap { position: relative; }
+  .input-wrap .ico {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem; pointer-events: none; opacity: 0.5;
+  }
+  .form-group input {
+    width: 100%;
+    background: #f0f7ff;
+    border: 1.5px solid #b3d4f5;
+    border-radius: 10px;
+    padding: 12px 14px 12px 42px;
+    color: #1a3a60; font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+  }
+  .form-group input:focus {
+    border-color: #1e90ff;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px #1e90ff20;
+  }
+  .form-group input::placeholder { color: #90b8d8; }
+
+  .alert {
+    border-radius: 10px; padding: 10px 14px;
+    font-size: 0.8rem; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .alert-error {
+    background: #fff0f0;
+    border: 1px solid #ffb3b3;
+    color: #cc2222;
+  }
+
+  .btn-submit {
+    width: 100%;
+    background: linear-gradient(135deg, #1e90ff, #1565c0);
+    border: none; border-radius: 10px;
+    padding: 14px; color: #fff;
+    font-size: 0.9rem; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-top: 4px;
+    box-shadow: 0 4px 20px #1e90ff35;
+  }
+  .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 28px #1e90ff50; }
+  .btn-submit:active { transform: scale(0.98); }
+
+  .hint {
+    text-align: center; margin-top: 16px;
+    font-size: 0.78rem; color: #5a8ab0;
+  }
+  .hint span {
+    color: #1e90ff; font-weight: 700;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .hint span:hover { color: #1565c0; }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 20px 0 16px;
+    color: #90a4ae; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: #dbeafe;
+  }
+
+  .btn-google {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    background: #fff;
+    border: 1.5px solid #dadce0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.88rem; font-weight: 700;
+    color: #3c4043;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    letter-spacing: 0.3px;
+  }
+  .btn-google:hover { background: #f8f9fa; box-shadow: 0 2px 10px rgba(0,0,0,0.12); border-color: #b3c7f5; }
+  .btn-google img { width: 20px; height: 20px; }
+
+  footer {
+    text-align: center; padding: 16px 0 22px;
+    font-size: 0.65rem; color: #90a4ae; letter-spacing: 1.5px;
+    border-top: 1px solid #dbeafe;
+  }
+</style>
+</head>
+<body>
+
+<div class="box">
+
+  <div class="brand">
+    <span class="icon">&#128641;</span>
+    <h1>UAV DISASTER DETECTION</h1>
+    <p>Secure System Access</p>
+  </div>
+
+  <div class="tab-row">
+    <div class="tab active" id="tab-login" onclick="switchTab('login')">&#128274; Login</div>
+    <div class="tab" id="tab-signup" onclick="switchTab('signup')">&#128221; Sign Up</div>
+  </div>
+
+  <div class="form-wrap">
+
+    <!-- LOGIN PANEL -->
+    <div class="form-panel active" id="panel-login">
+      {% if error %}
+      <div class="alert alert-error">&#9888; {{ error }}</div>
+      {% endif %}
+      <form method="POST" action="/login">
+        <div class="form-group">
+          <label for="login-user">Username</label>
+          <div class="input-wrap">
+            <span class="ico">&#128100;</span>
+            <input type="text" id="login-user" name="username"
+                   placeholder="Enter username" required autocomplete="username"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-pass">Password</label>
+          <div class="input-wrap">
+            <span class="ico">&#128274;</span>
+            <input type="password" id="login-pass" name="password"
+                   placeholder="Enter password" required autocomplete="current-password"/>
+          </div>
+        </div>
+        <button type="submit" class="btn-submit">&#128274;&nbsp; Login</button>
+      </form>
+      <div class="divider">or</div>
+      <button class="btn-google" onclick="googleSignIn()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"/>
+        Continue with Google
+      </button>
+      <div class="hint">Don't have an account? <span onclick="switchTab('signup')">Sign Up</span></div>
+    </div>
+
+    <!-- SIGNUP PANEL -->
+    <div class="form-panel" id="panel-signup">
+      {% if signup_error %}
+      <div class="alert alert-error">&#9888; {{ signup_error }}</div>
+      {% endif %}
+      <form method="POST" action="/signup">
+        <div class="form-group">
+          <label for="signup-user">Username</label>
+          <div class="input-wrap">
+            <span class="ico">&#128100;</span>
+            <input type="text" id="signup-user" name="username"
+                   placeholder="Choose a username" required autocomplete="username"
+                   minlength="3" maxlength="30"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="signup-pass">Password</label>
+          <div class="input-wrap">
+            <span class="ico">&#128274;</span>
+            <input type="password" id="signup-pass" name="password"
+                   placeholder="Min 6 characters" required autocomplete="new-password"
+                   minlength="6"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="signup-confirm">Confirm Password</label>
+          <div class="input-wrap">
+            <span class="ico">&#128275;</span>
+            <input type="password" id="signup-confirm" name="confirm"
+                   placeholder="Re-enter password" required autocomplete="new-password"
+                   minlength="6"/>
+          </div>
+        </div>
+        <button type="submit" class="btn-submit" onclick="return validateSignup()">
+          &#128221;&nbsp; Create Account
+        </button>
+      </form>
+      <div class="divider">or</div>
+      <button class="btn-google" onclick="googleSignIn()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"/>
+        Continue with Google
+      </button>
+      <div class="hint">Already have an account? <span onclick="switchTab('login')">Login</span></div>
+    </div>
+
+  </div>
+
+  <footer>UAV Disaster Identification &amp; Alerting System &nbsp;|&nbsp; YOLOv8</footer>
+
+</div>
+
+<script>
+  function switchTab(tab) {
+    ['login', 'signup'].forEach(function(t) {
+      document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    });
+    // Focus first input of active panel
+    var panel = document.getElementById('panel-' + tab);
+    var first = panel.querySelector('input');
+    if (first) first.focus();
+  }
+
+  function validateSignup() {
+    var pass    = document.getElementById('signup-pass').value;
+    var confirm = document.getElementById('signup-confirm').value;
+    if (pass !== confirm) {
+      alert('Passwords do not match.');
+      return false;
+    }
+    if (pass.length < 6) {
+      alert('Password must be at least 6 characters.');
+      return false;
+    }
+    return true;
+  }
+
+  // Auto-focus login input on load
+  document.getElementById('login-user').focus();
+
+  // Google Sign-In - OAuth2 Redirect Flow
+  const GOOGLE_CLIENT_ID = '{{ google_client_id }}';
+
+  function googleSignIn() {
+    const redirectUri = 'http://localhost:5000/google_callback';
+    const url = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+      'client_id=' + GOOGLE_CLIENT_ID +
+      '&redirect_uri=' + encodeURIComponent(redirectUri) +
+      '&response_type=code' +
+      '&scope=' + encodeURIComponent('openid email profile') +
+      '&access_type=offline' +
+      '&prompt=select_account';
+    window.location.href = url;
+  }
+  </script>
+</html>
